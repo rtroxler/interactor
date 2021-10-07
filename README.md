@@ -437,6 +437,44 @@ The organizer passes its context to the interactors that it organizes, one at a
 time and in order. Each interactor may change that context before it's passed
 along to the next interactor.
 
+#### Conditional organization
+
+There may be cases when you want to only run an interactor in the organized chain
+if some condition is met. To allow for this use-case, the `organize` method also
+accepts a block that allows for more fine-tuned control over the flow:
+
+```ruby
+class PlaceOrder
+  include Interactor::Organizer
+
+  organize do
+    run CreateOrder
+    run ChargeCard, if: :amount_nonzero?
+    run SendThankYou
+  end
+
+  private
+
+  def amount_nonzero?
+    !context.order_amount.zero?
+  end
+end
+```
+
+Filter options can include `if` or `unless`, and can be preceded by a symbol or proc:
+
+```ruby
+class PlaceOrder
+  include Interactor::Organizer
+
+  organize do
+    run CreateOrder
+    run ChargeCard, unless: -> { context.order.zero? }
+    run SendThankYou
+  end
+end
+```
+
 #### Rollback
 
 If any one of the organized interactors fails its context, the organizer stops.
@@ -469,6 +507,8 @@ end
 **NOTE:** The interactor that fails is *not* rolled back. Because every
 interactor should have a single purpose, there should be no need to clean up
 after any failed interactor.
+
+
 
 ## Testing Interactors
 
